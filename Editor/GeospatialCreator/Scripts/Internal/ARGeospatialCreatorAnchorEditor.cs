@@ -17,9 +17,6 @@
 //
 // </copyright>
 //-----------------------------------------------------------------------
-
-#if UNITY_2021_3_OR_NEWER
-
 namespace Google.XR.ARCoreExtensions.GeospatialCreator.Editor.Internal
 {
     using System;
@@ -28,7 +25,7 @@ namespace Google.XR.ARCoreExtensions.GeospatialCreator.Editor.Internal
     using UnityEngine;
 
     [CustomEditor(typeof(ARGeospatialCreatorAnchor))]
-    public class ARGeospatialCreatorAnchorEditor : Editor
+    internal class ARGeospatialCreatorAnchorEditor : Editor
     {
         private SerializedProperty _altitudeType;
         private SerializedProperty _latitude;
@@ -40,11 +37,7 @@ namespace Google.XR.ARCoreExtensions.GeospatialCreator.Editor.Internal
         {
             serializedObject.Update();
 
-            EditorGUI.BeginDisabledGroup(false);
-
             var anchor = serializedObject.targetObject as ARGeospatialCreatorAnchor;
-            bool hasChanged = false;
-
             GUIStyle titleStyle = new GUIStyle(EditorStyles.boldLabel);
             titleStyle.fontSize = 20;
             GUILayout.Label("Geospatial Creator Anchor", titleStyle);
@@ -58,45 +51,45 @@ namespace Google.XR.ARCoreExtensions.GeospatialCreator.Editor.Internal
 
             GUIContent altitudeTypeLabel = new GUIContent("Altitude Type");
             EditorGUILayout.PropertyField(_altitudeType, altitudeTypeLabel);
+            ARGeospatialCreatorAnchor.AltitudeType altitudeType;
+
+            altitudeType = anchor.AltType;
+
             using (new EditorGUI.IndentLevelScope())
             {
-                if (anchor.AltType == ARGeospatialCreatorAnchor.AltitudeType.Terrain ||
-                    anchor.AltType == ARGeospatialCreatorAnchor.AltitudeType.Rooftop)
+                if (altitudeType == ARGeospatialCreatorAnchor.AltitudeType.Terrain ||
+                    altitudeType == ARGeospatialCreatorAnchor.AltitudeType.Rooftop)
                 {
-                  _altitudeOffset.doubleValue = EditorGUILayout.DoubleField(
-                      "Altitude Offset", _altitudeOffset.doubleValue);
+                    _altitudeOffset.doubleValue = EditorGUILayout.DoubleField(
+                        "Altitude Offset",
+                        _altitudeOffset.doubleValue);
                 }
 
                 _altitude.doubleValue =
                     EditorGUILayout.DoubleField("WGS84 Altitude", _altitude.doubleValue);
-                if (anchor.AltType == ARGeospatialCreatorAnchor.AltitudeType.Terrain)
+                if (altitudeType == ARGeospatialCreatorAnchor.AltitudeType.Terrain)
                 {
-                    EditorGUILayout.HelpBox("WGS84 Altitude is only used in the editor to display altitude of the anchored object. At runtime Altitude Offset is used to position the anchor relative to the terrain.", MessageType.Info, wide:true);
+                    EditorGUILayout.HelpBox("WGS84 Altitude is only used in the editor to " +
+                        "display altitude of the anchored object. At runtime Altitude Offset is " +
+                        "used to position the anchor relative to the terrain.",
+                        MessageType.Info,
+                        wide: true);
                 }
-                else if (anchor.AltType == ARGeospatialCreatorAnchor.AltitudeType.Rooftop)
+                else if (altitudeType == ARGeospatialCreatorAnchor.AltitudeType.Rooftop)
                 {
-                    EditorGUILayout.HelpBox("WGS84 Altitude is only used in the editor to display altitude of the anchored object. At runtime Altitude Offset is used to position the anchor relative to rooftops.", MessageType.Info, wide:true);
+                    EditorGUILayout.HelpBox("WGS84 Altitude is only used in the editor to " +
+                        "display altitude of the anchored object. At runtime Altitude Offset is " +
+                        "used to position the anchor relative to rooftops.",
+                        MessageType.Info,
+                        wide: true);
                 }
             }
 
-            hasChanged = EditorGUI.EndChangeCheck();
-            if (hasChanged)
+
+            if (EditorGUI.EndChangeCheck())
             {
                 serializedObject.ApplyModifiedProperties();
-                anchor.SetUnityPosition();
             }
-
-            EditorGUI.EndDisabledGroup();
-
-            using (new EditorGUI.DisabledScope(true))
-            {
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("ECEF"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("EUN"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("EUS"));
-            }
-
-            // Apply changes to the serializedProperty - always do this at the end of OnInspectorGUI.
-            serializedObject.ApplyModifiedProperties();
         }
 
         private void OnEnable()
@@ -110,5 +103,3 @@ namespace Google.XR.ARCoreExtensions.GeospatialCreator.Editor.Internal
         }
     }
 }
-
-#endif // UNITY_X_OR_LATER

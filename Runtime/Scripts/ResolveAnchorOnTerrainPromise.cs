@@ -26,12 +26,17 @@ namespace Google.XR.ARCoreExtensions
     using UnityEngine.XR.ARSubsystems;
 
     /// <summary>
-    /// Handle to an async operation launched by <c><see
+    /// An <c><see
+    /// cref="Google.XR.ARCoreExtensions.Internal.InterruptiblePromise">InterruptiblePromise</see></c>
+    /// launched by <c><see
     /// cref="ARAnchorManagerExtensions.ResolveAnchorOnTerrainAsync(this ARAnchorManager,
-    /// double, double, double, UnityEngine.Quaternion)"/></c>
-    /// See the <a
+    /// double, double, double, UnityEngine.Quaternion)"/></c> with result type
+    /// <c><see cref="ResolveAnchorOnTerrainResult"/></c>.
+    /// See <c><see
+    /// cref="Google.XR.ARCoreExtensions.Internal.InterruptiblePromise">InterruptiblePromise</see></c>
+    /// for more information on how to retrieve results from the Promise, and the <a
     /// href="https://developers.google.com/ar/develop/geospatial/unity-arf/anchors#terrain-anchors">Terrain
-    /// anchors developer guide</a> for more information.
+    /// anchors developer guide</a>.
     /// </summary>
     public class ResolveAnchorOnTerrainPromise : InterruptiblePromise<ResolveAnchorOnTerrainResult>
     {
@@ -48,9 +53,10 @@ namespace Google.XR.ARCoreExtensions
         }
 
         /// <summary>
-        /// Constructs a specific promise with the associated handle. It polls the
-        /// result in the Update event every frame until the result gets resolved. The promise
-        /// result is accessible via <c><see cref="Result"/></c>, and can be cancelled by
+        /// Constructs a specific promise with the associated handle. The <c><see cref="State"/>
+        /// </c> must be polled in a coroutine until it returns <c><see cref="PromiseState.Done"/>
+        /// </c> or <c><see cref="PromiseState.Cancelled"/></c>. When done, the promise result is
+        /// accessible via <c><see cref="Result"/></c>. The promise can be cancelled by
         /// <c><see cref="Cancel()"/></c>.
         /// </summary>
         /// <param name="futureHandle">The future handle associated with this promise.</param>
@@ -77,6 +83,7 @@ namespace Google.XR.ARCoreExtensions
                 // Set defaults.
                 _state = PromiseState.Pending;
                 _result = new ResolveAnchorOnTerrainResult();
+                _onPromiseDone += AssignResult;
             }
 
 #if UNITY_ANDROID
@@ -84,30 +91,25 @@ namespace Google.XR.ARCoreExtensions
 #endif
         }
 
-        /// <summary>
-        /// Gets the <c><see cref="ResolveAnchorOnTerrainResult"/></c> associated with this
-        /// promise or the default values of <c><see cref="TerrainAnchorState.None"/></c> and
-        /// <c>null</c> if the promise was cancelled.
-        /// </summary>
-        public override ResolveAnchorOnTerrainResult Result
+        private void AssignResult()
         {
-            get
+            IntPtr sessionHandle = GetSessionHandle();
+            TerrainAnchorState terrainAnchorState = FutureApi.GetTerrainAnchorState(
+                sessionHandle, _future);
+
+            ARGeospatialAnchor anchor = null;
+            if (terrainAnchorState == TerrainAnchorState.Success)
             {
-                IntPtr sessionHandle = GetSessionHandle();
+                IntPtr anchorHandle = FutureApi.GetTerrainAnchorHandle(sessionHandle, _future);
 
-                if (_future != IntPtr.Zero && sessionHandle != IntPtr.Zero &&
-                    _result.TerrainAnchorState == TerrainAnchorState.None &&
-                    this.State == PromiseState.Done)
+                if (anchorHandle != IntPtr.Zero)
                 {
-                    TerrainAnchorState terrainAnchorState = FutureApi.GetTerrainAnchorState(
-                        sessionHandle, _future);
-
-                    ARGeospatialAnchor anchor = null;
-                    if (terrainAnchorState == TerrainAnchorState.Success)
+                    // Create the GameObject that is the Geospatial Terrain anchor.
+                    anchor = new GameObject(_terrainAnchorName).AddComponent<ARGeospatialAnchor>();
+                    if (anchor)
                     {
-                        IntPtr anchorHandle = FutureApi.GetTerrainAnchorHandle(sessionHandle,
-                            _future);
-
+                        anchor.SetAnchorHandle(anchorHandle);
+                        
                         if (anchorHandle != IntPtr.Zero)
                         {
                             // Create the GameObject that is the Geospatial Terrain anchor.
@@ -125,12 +127,10 @@ namespace Google.XR.ARCoreExtensions
                             }
                         }
                     }
-
-                    _result = new ResolveAnchorOnTerrainResult(terrainAnchorState, anchor);
                 }
-
-                return _result;
             }
+
+            _result = new ResolveAnchorOnTerrainResult(terrainAnchorState, anchor);
         }
     }
 }

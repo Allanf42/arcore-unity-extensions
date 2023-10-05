@@ -26,9 +26,16 @@ namespace Google.XR.ARCoreExtensions
     using UnityEngine.XR.ARSubsystems;
 
     /// <summary>
-    /// A specific interruptible promise to check the VPS availability using the given location by
-    /// initializing a query with a remote service, used in coroutines to poll <c><see
-    /// cref="VpsAvailability"/></c> results across multiple frames.
+    /// An <c><see
+    /// cref="Google.XR.ARCoreExtensions.Internal.InterruptiblePromise">InterruptiblePromise</see></c>
+    /// launched by <c><see
+    /// cref="AREarthManager.CheckVpsAvailabilityAsync(double, double)"/></c> with result type
+    /// <c><see cref="VpsAvailability"/></c>.
+    /// See <c><see
+    /// cref="Google.XR.ARCoreExtensions.Internal.InterruptiblePromise">InterruptiblePromise</see></c>
+    /// for more information on how to retrieve results from the Promise, and the <a
+    /// href="https://developers.google.com/ar/develop/unity-arf/geospatial/check-vps-availability">developer
+    /// guide on VPS availability</a>.
     /// </summary>
     public class VpsAvailabilityPromise : InterruptiblePromise<VpsAvailability>
     {
@@ -58,24 +65,15 @@ namespace Google.XR.ARCoreExtensions
                 _state = PromiseState.Done;
                 _result = VpsAvailability.ErrorInternal;
             }
+            else
+            {
+                _onPromiseDone = AssignResult;
+            }
         }
 
-        /// <summary>
-        /// Gets the <c><see cref="VpsAvailability"/></c> associated with this promise or the
-        /// default value <c><see cref="VpsAvailability.Unknown"/></c> if the promise was cancelled.
-        /// </summary>
-        public override VpsAvailability Result
+        private void AssignResult()
         {
-            get
-            {
-                var sessionHandle = GetSessionHandle();
-                if (_future != IntPtr.Zero && sessionHandle != IntPtr.Zero)
-                {
-                    _result = FutureApi.GetVpsAvailabilityResult(sessionHandle, _future);
-                }
-
-                return _result;
-            }
+            _result = FutureApi.GetVpsAvailabilityResult(GetSessionHandle(), _future);
         }
     }
 }

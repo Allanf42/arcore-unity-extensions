@@ -26,12 +26,16 @@ namespace Google.XR.ARCoreExtensions
     using UnityEngine.XR.ARSubsystems;
 
     /// <summary>
-    /// An interruptible promise launched by <c><see
+    /// An <c><see
+    /// cref="Google.XR.ARCoreExtensions.Internal.InterruptiblePromise">InterruptiblePromise</see></c>
+    /// launched by <c><see
     /// cref="ARAnchorManagerExtensions.ResolveCloudAnchorAsync(this ARAnchorManager,
-    /// string)"/></c>. Used with <a href="https://docs.unity3d.com/Manual/Coroutines.html">Unity
-    /// Coroutines</a> to poll results across multiple frames. See the <a
+    /// string)"/></c> with result type <c><see cref="ResolveCloudAnchorResult"/></c>.
+    /// See <c><see
+    /// cref="Google.XR.ARCoreExtensions.Internal.InterruptiblePromise">InterruptiblePromise</see></c>
+    /// for more information on how to retrieve results from the Promise, and the <a
     /// href="https://developers.google.com/ar/develop/unity-arf/cloud-anchors/developer-guide">Cloud
-    /// Anchors developer guide</a> for more information.
+    /// Anchors developer guide</a>.
     /// </summary>
     public class ResolveCloudAnchorPromise : InterruptiblePromise<ResolveCloudAnchorResult>
     {
@@ -48,9 +52,10 @@ namespace Google.XR.ARCoreExtensions
         }
 
         /// <summary>
-        /// Constructs a specific promise with the associated handle. It polls the
-        /// result in the Update event every frame until the result gets resolved. The promise
-        /// result is accessible via <c><see cref="Result"/></c>, and can be cancelled by
+        /// Constructs a specific promise with the associated handle. The <c><see cref="State"/>
+        /// </c> must be polled in a coroutine until it returns <c><see cref="PromiseState.Done"/>
+        /// </c> or <c><see cref="PromiseState.Cancelled"/></c>. When done, the promise result is
+        /// accessible via <c><see cref="Result"/></c>. The promise can be cancelled by
         /// <c><see cref="Cancel()"/></c>.
         /// </summary>
         /// <param name="futureHandle">The future handle associated with this promise.</param>
@@ -77,6 +82,7 @@ namespace Google.XR.ARCoreExtensions
                 // Set defaults.
                 _state = PromiseState.Pending;
                 _result = new ResolveCloudAnchorResult();
+                _onPromiseDone += AssignResult;
             }
 
 #if UNITY_ANDROID
@@ -84,30 +90,25 @@ namespace Google.XR.ARCoreExtensions
 #endif
         }
 
-        /// <summary>
-        /// Gets the <c><see cref="ResolveCloudAnchorResult"/></c> associated with this
-        /// promise or the default values of <c><see cref="CloudAnchorState.None"/></c> and
-        /// <c>null</c> if the promise was cancelled.
-        /// </summary>
-        public override ResolveCloudAnchorResult Result
+        private void AssignResult()
         {
-            get
+            IntPtr sessionHandle = GetSessionHandle();
+            CloudAnchorState cloudAnchorState = FutureApi.GetResolveCloudAnchorState(
+                sessionHandle, _future);
+
+            ARCloudAnchor anchor = null;
+            if (cloudAnchorState == CloudAnchorState.Success)
             {
-                IntPtr sessionHandle = GetSessionHandle();
+                IntPtr anchorHandle = FutureApi.GetCloudAnchorHandle(sessionHandle, _future);
 
-                if (_future != IntPtr.Zero && sessionHandle != IntPtr.Zero &&
-                    _result.CloudAnchorState == CloudAnchorState.None &&
-                    this.State == PromiseState.Done)
+                if (anchorHandle != IntPtr.Zero)
                 {
-                    CloudAnchorState cloudAnchorState = FutureApi.GetResolveCloudAnchorState(
-                        sessionHandle, _future);
-
-                    ARCloudAnchor anchor = null;
-                    if (cloudAnchorState == CloudAnchorState.Success)
+                    // Create the GameObject that is the cloud anchor.
+                    anchor = new GameObject(_cloudAnchorName).AddComponent<ARCloudAnchor>();
+                    if (anchor)
                     {
-                        IntPtr anchorHandle = FutureApi.GetCloudAnchorHandle(sessionHandle,
-                            _future);
-
+                        anchor.SetAnchorHandle(anchorHandle);
+                        
                         if (anchorHandle != IntPtr.Zero)
                         {
                             // Create the GameObject that is the cloud anchor.
@@ -124,12 +125,10 @@ namespace Google.XR.ARCoreExtensions
                             }
                         }
                     }
-
-                    _result = new ResolveCloudAnchorResult(cloudAnchorState, anchor);
                 }
-
-                return _result;
             }
+
+            _result = new ResolveCloudAnchorResult(cloudAnchorState, anchor);
         }
     }
 }

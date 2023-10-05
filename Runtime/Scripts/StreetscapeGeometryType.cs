@@ -17,6 +17,7 @@
 //
 // </copyright>
 //-----------------------------------------------------------------------
+
 namespace Google.XR.ARCoreExtensions
 {
     using System.Collections;
@@ -26,7 +27,7 @@ namespace Google.XR.ARCoreExtensions
     /// <summary>
     /// Describes the type of a Streetscape Geometry.
     ///
-    /// Obtained by <c><see cref="StreetscapeGeometry.streetscapeGeometryType"/></c>.
+    /// Obtained by <c><see cref="ARStreetscapeGeometry.streetscapeGeometryType"/></c>.
     /// </summary>
     public enum StreetscapeGeometryType
     {
