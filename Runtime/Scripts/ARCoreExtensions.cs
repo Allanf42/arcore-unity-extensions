@@ -23,7 +23,7 @@
 
 using Unity.XR.CoreUtils;
 
-[assembly: InternalsVisibleTo("Google.XR.ARCoreExtensions.GeospatialCreator")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Google.XR.ARCoreExtensions.GeospatialCreator")]
 
 namespace Google.XR.ARCoreExtensions
 {
